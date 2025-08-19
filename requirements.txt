@@ -1,0 +1,16 @@
+torch
+datasets
+accelerate
+pandas
+numpy
+scikit-learn
+tqdm
+pyyaml
+evaluate
+kaggle
+transformers>=4.41.0
+tokenizers>=0.15.2
+sentencepiece>=0.2.0
+huggingface_hub>=0.24.0
+protobuf>=4.25.3
+tiktoken>=0.7.0  

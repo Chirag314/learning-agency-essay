@@ -1,0 +1,29 @@
+competition: "learning-agency-lab-automated-essay-scoring-2"
+data_dir: "data"
+model_dir: "models/microsoft-deberta-v3-base"
+output_dir: "outputs"
+seed: 42   #
+
+# Training
+model_name: "microsoft/deberta-v3-base"
+max_length: 1024
+train_batch_size: 4
+valid_batch_size: 4
+lr: 2e-5
+weight_decay: 0.01
+epochs: 3
+gradient_accumulation: 2
+num_workers: 2
+fp16: true
+k_folds: 5
+
+# Inference / thresholds
+rounding: "optimized"  # "nearest" or "optimized"
+num_labels: 1  # regression
+score_min: 1
+score_max: 6
+
+# Column autodetection hints
+text_columns: ["full_text", "text", "essay", "essay_text", "content"]
+target_columns: ["score", "target", "y"]
+id_columns: ["essay_id", "id"]
