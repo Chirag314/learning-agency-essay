@@ -1,24 +1,30 @@
 competition: "learning-agency-lab-automated-essay-scoring-2"
 data_dir: "data"
-model_dir: "models/microsoft-deberta-v3-base"
+# NOTE (2026-08-13): despite the filename `deberta-v3-base.ipynb` in the original notebook,
+# the notebook's own MODEL_PATH actually points to deberta-v3-small — this repo's config
+# previously said "base" without matching what was actually run. Corrected to small, which
+# also keeps full local re-training tractable on a single GPU.
+# model_dir left unset -> falls back to model_name below, loaded directly from the HF Hub
+# (run scripts/download_model.py first if you want a pinned local snapshot instead)
+model_dir: null
 output_dir: "outputs"
-seed: 42   #
+seed: 42
 
 # Training
-model_name: "microsoft/deberta-v3-base"
-max_length: 1024
+model_name: "microsoft/deberta-v3-small"
+max_length: 1024   # covers ~97% of essays untruncated (p95 token length = 757, verified against real data)
 train_batch_size: 4
-valid_batch_size: 4
+valid_batch_size: 8
 lr: 2e-5
 weight_decay: 0.01
-epochs: 3
+epochs: 2          # reduced from 3 for this repo's real (not fabricated) reproduction run — see reports/experiments_report.md
 gradient_accumulation: 2
 num_workers: 2
 fp16: true
-k_folds: 5
+k_folds: 3         # reduced from 5 for the same reason — full 5-fold config still supported via --k-folds 5
 
 # Inference / thresholds
-rounding: "optimized"  # "nearest" or "optimized"
+rounding: "optimized"  # "nearest" or "optimized" — Nelder-Mead threshold search (src/qwk.py), ~0.1s/call
 num_labels: 1  # regression
 score_min: 1
 score_max: 6

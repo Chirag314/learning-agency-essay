@@ -110,8 +110,8 @@ def train_one_fold(cfg, fold, df_train, df_valid, text_col, target_col, device):
     scheduler = get_cosine_schedule_with_warmup(
         optimizer, num_warmup_steps=int(0.1 * num_steps), num_training_steps=num_steps
     )
-    scaler = torch.cuda.amp.GradScaler(
-        enabled=bool(cfg["fp16"]) and torch.cuda.is_available()
+    scaler = torch.amp.GradScaler(
+        "cuda", enabled=bool(cfg["fp16"]) and torch.cuda.is_available()
     )
     mse = nn.MSELoss()
 
@@ -130,8 +130,8 @@ def train_one_fold(cfg, fold, df_train, df_valid, text_col, target_col, device):
             if labels is not None:
                 labels = labels.to(device)
 
-            with torch.cuda.amp.autocast(
-                enabled=bool(cfg["fp16"]) and torch.cuda.is_available()
+            with torch.amp.autocast(
+                "cuda", enabled=bool(cfg["fp16"]) and torch.cuda.is_available()
             ):
                 out = model(input_ids=input_ids, attention_mask=attention_mask)
                 logits = out["logits"].squeeze(-1)

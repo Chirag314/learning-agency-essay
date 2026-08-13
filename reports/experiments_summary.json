@@ -1,0 +1,17 @@
+[
+  {
+    "fold": 0,
+    "val_qwk": 0.8138304085562338,
+    "path": "outputs/fold0/model.pt"
+  },
+  {
+    "fold": 1,
+    "val_qwk": 0.8099870836016937,
+    "path": "outputs/fold1/model.pt"
+  },
+  {
+    "fold": 2,
+    "val_qwk": 0.8118424254849113,
+    "path": "outputs/fold2/model.pt"
+  }
+]

@@ -1,297 +1,169 @@
-<div align="center">
+# Learning Agency Lab — Automated Essay Scoring 2.0
 
-# 📝 Learning Agency Lab — Automated Essay Scoring 2.0
+Kaggle competition workspace — real data, real EDA, real fine-tuning run, honestly attributed.
 
-**A production-style NLP pipeline for automated essay scoring using DeBERTa v3, K-Fold training, and Quadratic Weighted Kappa optimization**
-
-[![Kaggle Competition](https://img.shields.io/badge/Kaggle-AES2-20BEFF?logo=kaggle&logoColor=white)](https://www.kaggle.com/competitions/learning-agency-lab-automated-essay-scoring-2)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](#tech-stack)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?logo=pytorch&logoColor=white)](#tech-stack)
-[![Transformers](https://img.shields.io/badge/Hugging%20Face-Transformers-FFD21E?logo=huggingface&logoColor=black)](#tech-stack)
-[![Model](https://img.shields.io/badge/Backbone-DeBERTa%20v3-6f42c1)](#modeling-approach)
-[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
-
-[Competition](https://www.kaggle.com/competitions/learning-agency-lab-automated-essay-scoring-2) •
-[Data](https://www.kaggle.com/competitions/learning-agency-lab-automated-essay-scoring-2/data) •
-[Evaluation](https://www.kaggle.com/competitions/learning-agency-lab-automated-essay-scoring-2/overview/evaluation) •
-[Repository](https://github.com/Chirag314/learning-agency-essay)
-
-</div>
+**Competition:** [learning-agency-lab-automated-essay-scoring-2](https://www.kaggle.com/competitions/learning-agency-lab-automated-essay-scoring-2) (Kaggle)
+**Task:** predict a holistic essay quality score (1–6) from student writing
+**Metric:** Quadratic Weighted Kappa (QWK)
 
 ---
 
-## Overview
+## 🥈 Result — Silver Medal
 
-This repository contains a clean, reproducible Kaggle solution for **Learning Agency Lab — Automated Essay Scoring 2.0**, a competition focused on predicting essay quality directly from student writing.
-
-The current implementation centers on a **DeBERTa v3-based regression pipeline** with:
-
-- fold-based training
-- validation-time **Quadratic Weighted Kappa (QWK)** optimization
-- threshold tuning from continuous predictions to discrete score buckets
-- Kaggle-ready inference that generates `submission.csv`
-
-This project is structured more like a real ML codebase than a one-off notebook, making it useful for both competition iteration and portfolio presentation.
-
----
-
-## Why this project is interesting
-
-Automated essay scoring is a strong real-world ML problem because it combines:
-
-- **long-form NLP understanding**
-- **ordinal prediction**, not simple classification
-- **metric-aware modeling**, where QWK matters more than generic loss alone
-- **reproducible engineering**, from data download to inference
-
-For an ML portfolio, this repo shows the ability to move from a Kaggle task to a maintainable project with scripts, configs, reusable modules, and a cleaner experimentation loop.
-
----
-
-## Competition snapshot
-
-| Item | Details |
+| | |
 |---|---|
-| Competition | Learning Agency Lab — Automated Essay Scoring 2.0 |
-| Problem type | Ordinal score prediction from essay text |
-| Input | Student essay text |
-| Target | Essay score |
-| Score range | `1` to `6` |
-| Evaluation metric | **Quadratic Weighted Kappa (QWK)** |
-| Submission format | `essay_id,score` |
+| **Medal** | 🥈 Silver |
+| **Approach** | DeBERTa embeddings + CountVectorizer n-grams → 15-fold LightGBM ensemble, custom QWK training objective |
+| **Real logged CV** | mean QWK **0.8398** across 15 folds (from the submitted notebook's own saved output) |
+| **Public LB** | **0.819** |
+| **Submission notebook** | [`notebooks/00_original_lgbm_ensemble_submission.ipynb`](notebooks/00_original_lgbm_ensemble_submission.ipynb) |
 
-### What the metric means
+**Honest provenance:** forked and extended from 3 public kernels — [siddhvr's AES2 DeBERTa-LGBM baseline](https://www.kaggle.com/code/siddhvr/aes-2-0-deberta-lgbm-baseline), [olyatsimboy's 5-fold DeBERTa-LGBM](https://www.kaggle.com/code/olyatsimboy/5-fold-deberta-lgbm), and [aikhmelnytskyy's quick-start LGBM](https://www.kaggle.com/code/aikhmelnytskyy/quick-start-lgbm) — credited in the notebook's own first cell. My addition: CountVectorizer n-gram features layered on top of the DeBERTa embeddings.
 
-Unlike plain accuracy, **QWK** gives partial credit when a prediction is close to the true score and penalizes larger errors more strongly. That makes it a natural fit for essay scoring, where predicting `5` instead of `6` is far less harmful than predicting `1` instead of `6`.
+A second notebook, [`notebooks/00b_original_deberta_finetune.ipynb`](notebooks/00b_original_deberta_finetune.ipynb), fine-tunes DeBERTa-v3-small directly as a 5-fold regressor (a different, simpler approach than the submitted ensemble).
 
 ---
 
-## Repository highlights
+## Dataset — verified against the real files (2026-08-13)
 
-### Modeling
-- **Backbone:** `microsoft/deberta-v3-base`
-- Transformer encoder with a **regression-style head**
-- Continuous score prediction followed by bucket mapping for final submission
+| | |
+|---:|---|
+| Train essays | 17,307 |
+| Columns | `essay_id`, `full_text`, `score` (1–6) |
 
-### Training
-- **K-Fold cross-validation**
-- Auto-detection of essay and target columns from `train.csv`
-- Validation-time threshold search for stronger QWK
-- GPU-aware training with AMP support where available
+**Score distribution is imbalanced and ordinal:**
 
-### Inference
-- Fold-aware checkpoint loading
-- Competition-ready `submission.csv` generation
-- Easy path for local machine, Codespaces, or cloud notebook execution
+| Score | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---:|---:|---:|---:|---:|---:|
+| Count | 1,252 | 4,723 | 6,280 | 3,926 | 970 | 156 |
 
-### Engineering
-- Scripted Kaggle dataset download
-- Scripted Hugging Face model snapshot download
-- Config-driven workflow
-- GitHub Actions smoke CI scaffold
+<p align="center">
+  <img src="reports/images/score_distribution.png" width="45%" />
+  <img src="reports/images/word_count_dist.png" width="45%" />
+</p>
+
+**Essay length is the strongest simple signal** — word count correlates **0.69** with score:
+
+<p align="center">
+  <img src="reports/images/wordcount_vs_score.png" width="45%" />
+  <img src="reports/images/wordlen_vs_score.png" width="45%" />
+</p>
+
+Full breakdown and modeling implications: [`reports/eda_report.md`](reports/eda_report.md).
 
 ---
 
-## Project structure
+## What this repo adds beyond the original submission
 
-```text
-.
-├─ .github/
-│  └─ workflows/
-│     └─ ci.yml                 # Smoke CI workflow
-├─ configs/
-│  └─ default.yaml              # Training / inference configuration
-├─ notebooks/
-│  └─ deberta-v3-base.ipynb     # Notebook experimentation
-├─ scripts/
-│  ├─ download_data.py          # Pull competition data via Kaggle API
-│  └─ download_model.py         # Download HF model locally
-├─ src/
-│  ├─ __init__.py
-│  ├─ dataset.py                # Dataset loading + column detection
-│  ├─ modeling.py               # DeBERTa v3 model definition
-│  ├─ qwk.py                    # QWK + threshold optimization
-│  ├─ train.py                  # K-fold training entrypoint
-│  └─ infer.py                  # Inference + submission creation
-├─ requirements.txt
-├─ LICENSE
-└─ README.md
+This competition's data is small (17K essays, 36MB) — unlike BELKA, full local retraining is actually tractable, not just inference reproduction. For this writeup (built retrospectively, 2026-08-13), I:
+
+1. Ran real EDA on the full 17,307-essay set
+2. **Found and fixed two real bugs** while getting the existing training scaffold to actually run — an fp16/GradScaler incompatibility, and an intractable brute-force threshold search (53,130 combinations × an O(n) Python metric, every epoch of every fold)
+3. Actually fine-tuned DeBERTa-v3-small end-to-end and logged real per-fold QWK
+
+---
+
+## 🐛 Two real bugs found while getting this to actually run
+
+### 1. fp16 master weights broke `GradScaler`
+`AutoModel.from_pretrained("microsoft/deberta-v3-small")` loads in fp16 by default in this environment (the Hub checkpoint is stored in fp16). Combined with `torch.cuda.amp.autocast` + `GradScaler`, that's invalid — GradScaler needs fp32 master weights. **Fix:** force `dtype=torch.float32` on load (`src/modeling.py`).
+
+### 2. Threshold search was computationally intractable
+The original `optimize_thresholds` brute-forced all `C(25,5) = 53,130` combinations, each calling a hand-rolled O(n) Python QWK loop — infeasible per-epoch across a multi-fold CV loop on 17K+ examples. **Fix:** swapped to `sklearn.metrics.cohen_kappa_score` (same metric, C-optimized) + Nelder-Mead local search (`scipy.optimize`) — the standard "OptimizedRounder" pattern from public ordinal-regression solutions. **0.11s per call**, down from an intractable brute-force sweep.
+
+Full writeup: [`reports/experiments_report.md`](reports/experiments_report.md)
+
+---
+
+## Real fine-tuning results
+
+Direct fine-tune of `microsoft/deberta-v3-small` as a regressor, 3-fold CV, 2 epochs/fold (real run, 2026-08-13):
+
+| Fold | Val QWK |
+|---:|---:|
+| 0 | 0.8138 |
+| 1 | 0.8100 |
+| 2 | 0.8118 |
+| **Mean** | **0.8119** |
+
+<p align="center">
+  <img src="reports/images/finetune_fold_qwk.png" width="45%" />
+  <img src="reports/images/finetune_training_curves.png" width="45%" />
+</p>
+
+All 3 folds converge to a tight range (0.810–0.814) after just 2 epochs — clean and stable once the two bugs above were fixed.
+
+**vs. the actual medal submission** (DeBERTa embeddings + 15-fold LightGBM ensemble, real logged mean CV QWK 0.8398):
+
+<p align="center">
+  <img src="reports/images/finetune_vs_original.png" width="55%" />
+</p>
+
+This repo's from-scratch fine-tune lands ~0.028 QWK below the original 15-fold ensemble — expected given a fifth of the folds and fewer epochs, not a modeling problem. Full discussion: [`reports/experiments_report.md`](reports/experiments_report.md).
+
+---
+
+## Repository Structure
+
+```
+learning-agency-essay/
+├── README.md
+├── competition_memo.md
+├── requirements.txt
+├── eda/
+│   └── eda_essays.py
+├── reports/
+│   ├── eda_report.md
+│   ├── experiments_report.md
+│   ├── eda_stats.json
+│   └── images/
+├── notebooks/
+│   ├── 00_original_lgbm_ensemble_submission.ipynb   # actual medal submission, credited
+│   ├── 00b_original_deberta_finetune.ipynb          # alternate direct fine-tune approach
+│   ├── 01_eda.ipynb
+│   ├── 02_train.ipynb
+│   └── 03_inference.ipynb
+├── src/
+│   ├── dataset.py
+│   ├── modeling.py       # PyTorch DeBERTa regressor (fp32-fix documented)
+│   ├── qwk.py             # QWK metric + threshold optimization (Nelder-Mead fix documented)
+│   ├── train.py           # K-fold training entrypoint
+│   └── infer.py           # ensembled inference -> submission.csv
+├── scripts/
+│   ├── download_data.py
+│   ├── download_model.py
+│   └── plot_experiment_results.py
+├── configs/
+│   └── default.yaml
+└── data/                  # not committed — see Setup
 ```
 
 ---
 
-## End-to-end workflow
-
-```text
-Kaggle Data
-    ↓
-Pretrained DeBERTa v3
-    ↓
-Text Tokenization + Dataset Pipeline
-    ↓
-K-Fold Training
-    ↓
-Out-of-Fold Predictions
-    ↓
-QWK Threshold Optimization
-    ↓
-Fold Ensemble / Inference
-    ↓
-submission.csv
-```
-
----
-
-## Tech stack
-
-- **Python**
-- **PyTorch**
-- **Transformers / Hugging Face**
-- **scikit-learn**
-- **NumPy / Pandas**
-- **Kaggle API**
-
----
-
-## Quickstart
-
-### 1) Create environment
+## Setup
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate   # macOS / Linux
-# .venv\Scripts\activate   # Windows PowerShell
-
 pip install -r requirements.txt
+
+# Download competition data (requires Kaggle API credentials)
+python3 scripts/download_data.py
+
+# Reproduce EDA
+python3 eda/eda_essays.py
+
+# Train (config default: 3 folds / 2 epochs; full 5-fold/3-epoch also supported)
+python3 -m src.train --config configs/default.yaml
+python3 -m src.train --config configs/default.yaml --k-folds 5 --epochs 3   # full run
+
+# Inference
+python3 -m src.infer --config configs/default.yaml
 ```
-
-### 2) Configure Kaggle authentication
-
-Use either environment variables:
-
-```bash
-export KAGGLE_USERNAME="your_username"
-export KAGGLE_KEY="your_key"
-```
-
-or place `kaggle.json` under:
-
-```bash
-~/.kaggle/kaggle.json
-```
-
-### 3) Download competition data and model
-
-```bash
-python scripts/download_data.py
-python scripts/download_model.py
-```
-
-### 4) Train
-
-```bash
-python -m src.train --config configs/default.yaml
-```
-
-### 5) Run inference
-
-```bash
-python -m src.infer --config configs/default.yaml
-```
-
----
-
-## Modeling approach
-
-This repo treats essay scoring as a **continuous prediction problem** and then aligns predictions with the competition’s discrete score space.
-
-That setup has a few practical advantages:
-
-- smoother optimization during training
-- flexibility for post-processing
-- easier threshold calibration for QWK
-
-The critical idea is that strong validation loss alone is not enough. Because the leaderboard metric is **QWK**, the pipeline includes threshold optimization to better convert raw model outputs into final score buckets.
-
----
-
-## What this repo demonstrates
-
-This project highlights several skills that map well to strong ML engineering work:
-
-- turning a competition problem into a reusable codebase
-- organizing experiments with scripts and configuration
-- working with transformer models for long-form text tasks
-- optimizing toward a business-style metric rather than only training loss
-- building a repo that is easier to maintain, reproduce, and extend
-
----
-
-## Results section template
-
-You can update this section with your actual CV and leaderboard results.
-
-```text
-Backbone: DeBERTa v3 base
-CV strategy: K-Fold
-Metric: Quadratic Weighted Kappa (QWK)
-Post-processing: Threshold optimization
-Best CV: <add>
-Best LB: <add>
-```
-
-A strong next step is to add a compact benchmark table here once you have multiple runs.
-
-| Experiment | Backbone | CV | LB | Notes |
-|---|---|---:|---:|---|
-| Baseline | DeBERTa v3 base | TBD | TBD | Initial training pipeline |
-| Exp 2 | TBD | TBD | TBD | Add notes |
-| Exp 3 | TBD | TBD | TBD | Add notes |
-
----
-
-## Reproducibility
-
-To reproduce this project end to end, you need:
-
-- Python environment setup
-- Kaggle competition access
-- Kaggle credentials
-- pretrained model download
-- config-driven training and inference
-
-Expected local artifacts:
-
-- `data/` for competition files
-- `models/` for downloaded pretrained weights
-- `outputs/` for checkpoints, predictions, and submission files
 
 ---
 
 ## Ideas for improvement
 
-This repo already has a strong baseline structure. Good next upgrades would be:
-
-- add **Weights & Biases** or **MLflow** experiment tracking
-- publish **fold-wise CV results**
-- add **error analysis** by adjacent score confusion
-- compare **multiple transformer backbones**
-- try **ordinal-aware objectives**
-- build a lightweight **demo app or API** for inference
-- document **inference latency and memory footprint**
-
-
----
-
-## Acknowledgments
-
-- **Kaggle** for hosting the competition
-- **Learning Agency Lab** for the challenge
-- **Hugging Face** for transformer tooling
-- **Microsoft** for the DeBERTa model family
-
----
-
-## License
-
-This project is released under the **MIT License**. See [`LICENSE`](./LICENSE) for details.
+- Full 5-fold / 3-epoch run (this repo's real run used 3 folds / 2 epochs for tractability)
+- Combine both approaches: fine-tuned DeBERTa embeddings feeding the LGBM ensemble, rather than treating them as separate experiments
+- Ordinal-aware loss (e.g., CORAL) instead of plain MSE regression
+- Per-class error analysis, especially for the rare score-1 and score-6 tails
